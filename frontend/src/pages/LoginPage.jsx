@@ -17,13 +17,13 @@ function LoginForm({ role, onDemoLogin }) {
   const [email, setEmail] = useState('')
   const [pass, setPass] = useState('')
   return (
-    <div className="h-full flex flex-col bg-white p-5">
-      <div className="mb-6 text-center">
+    <div className="h-full flex flex-col bg-white overflow-y-auto scrollbar-hide">
+      <div className="flex flex-col items-center pt-6 pb-4 px-5 shrink-0">
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-3xl mx-auto mb-3 shadow-lg">{cfg.emoji}</div>
         <h2 className="text-slate-800 font-bold text-lg">{cfg.label}</h2>
         <p className="text-slate-500 text-xs mt-1">Sign in to ResQNet</p>
       </div>
-      <div className="space-y-3 flex-1">
+      <div className="flex-1 px-5 pb-4 space-y-3">
         <div>
           <label className="text-xs text-slate-600 font-medium">Email / Phone</label>
           <input value={email} onChange={e => setEmail(e.target.value)} className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:border-orange-500 transition-colors placeholder:text-slate-400" placeholder="Enter email or phone"/>
@@ -43,8 +43,8 @@ function LoginForm({ role, onDemoLogin }) {
         <button onClick={onDemoLogin} className="w-full bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-semibold py-3 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
           <span>⚡</span> Demo Login
         </button>
+        <p className="text-center text-xs text-slate-400 pt-2">ResQNet — SIH 2024 Demo</p>
       </div>
-      <p className="text-center text-xs text-slate-400 mt-4">ResQNet — SIH 2024 Demo</p>
     </div>
   )
 }

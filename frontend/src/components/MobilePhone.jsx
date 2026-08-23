@@ -33,7 +33,7 @@ function AppIcon({ app, onClick, size = 'normal' }) {
       <div className={`${s} rounded-2xl bg-gradient-to-br ${app.color} flex items-center justify-center shadow-lg ${app.main ? 'ring-2 ring-orange-400/50 shadow-orange-500/30' : ''}`}>
         <span>{app.emoji}</span>
       </div>
-      <span className={`${labelSize} text-white/80 font-medium text-center leading-tight`}>{app.label}</span>
+      <span className={`${labelSize} text-slate-700 font-medium text-center leading-tight`}>{app.label}</span>
     </motion.div>
   )
 }
@@ -67,10 +67,10 @@ export default function MobilePhone({ children, showApp }) {
       </div>
 
       {/* Screen */}
-      <div className="absolute inset-[6px] bg-black rounded-[46px] overflow-hidden">
+      <div className="absolute inset-[6px] bg-white rounded-[46px] overflow-hidden">
         {/* Wallpaper */}
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-blue-950 to-slate-900"/>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(59,130,246,0.2)_0%,_transparent_60%)]"/>
+        <div className="absolute inset-0 bg-gradient-to-b from-sky-100 via-blue-50 to-indigo-100"/>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(186,230,255,0.6)_0%,_transparent_60%)]"/>
 
         {/* Dynamic Island */}
         <div className="absolute top-3 left-1/2 -translate-x-1/2 w-28 h-7 bg-black rounded-full z-50 flex items-center justify-center">
@@ -79,11 +79,11 @@ export default function MobilePhone({ children, showApp }) {
 
         {/* Status bar */}
         <div className="absolute top-0 left-0 right-0 h-14 flex items-end justify-between px-6 pb-1 z-40">
-          <span className="text-white text-xs font-semibold">{timeStr}</span>
+          <span className="text-slate-800 text-xs font-semibold">{timeStr}</span>
           <div className="flex items-center gap-1">
-            <span className="text-white text-xs">●●●●</span>
-            <span className="text-white text-xs">WiFi</span>
-            <span className="text-white text-xs">🔋</span>
+            <span className="text-slate-800 text-xs">●●●●</span>
+            <span className="text-slate-800 text-xs">WiFi</span>
+            <span className="text-slate-800 text-xs">🔋</span>
           </div>
         </div>
 
@@ -137,7 +137,7 @@ export default function MobilePhone({ children, showApp }) {
             >
               {/* Lock screen date */}
               <div className="text-center pt-4 pb-6">
-                <div className="text-white/60 text-xs">{dateStr}</div>
+                <div className="text-slate-600 text-xs">{dateStr}</div>
               </div>
 
               {/* App grid */}
@@ -148,14 +148,14 @@ export default function MobilePhone({ children, showApp }) {
               </div>
 
               {/* Dock */}
-              <div className="absolute bottom-4 left-4 right-4 bg-white/10 backdrop-blur-md rounded-3xl p-3 flex justify-around items-center border border-white/20">
+              <div className="absolute bottom-4 left-4 right-4 bg-white/60 backdrop-blur-md rounded-3xl p-3 flex justify-around items-center border border-slate-200/80 shadow-sm">
                 {DOCK_APPS.map(app => (
                   <AppIcon key={app.id} app={app} onClick={handleAppClick} size="dock" />
                 ))}
               </div>
 
               {/* Home indicator */}
-              <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-24 h-1 bg-white/40 rounded-full"/>
+              <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-24 h-1 bg-slate-400/50 rounded-full"/>
             </motion.div>
           )}
         </AnimatePresence>

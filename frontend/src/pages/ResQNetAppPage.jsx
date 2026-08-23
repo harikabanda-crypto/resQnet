@@ -14,14 +14,10 @@ const ROLES = [
 function RoleSelection({ navigate }) {
   return (
     <div className="h-full flex flex-col bg-white overflow-y-auto scrollbar-hide">
-      <div className="px-4 pt-4 pb-3 border-b border-slate-100 shrink-0">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-sm">🛡</div>
-          <span className="text-slate-800 font-bold text-base">ResQNet</span>
-        </div>
+      <div className="px-4 pt-3 pb-2 border-b border-slate-100 shrink-0">
         <p className="text-slate-500 text-[11px] leading-tight">Connecting people, resources and responders when every second matters.</p>
       </div>
-      <div className="flex-1 p-3 space-y-2">
+      <div className="flex-1 p-3 space-y-2 overflow-y-auto">
         <p className="text-slate-400 text-xs font-medium uppercase tracking-wide mb-3">Select your role</p>
         {ROLES.map(role => (
           <motion.button
