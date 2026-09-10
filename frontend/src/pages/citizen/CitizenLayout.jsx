@@ -2,6 +2,7 @@ import React from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import MobilePhone from '../../components/MobilePhone.jsx'
 import { Home, Map, HelpCircle, Package, User } from 'lucide-react'
+import { useApp } from '../../contexts/AppContext.jsx'
 
 const NAV = [
   { to: '/citizen/home', icon: Home, label: 'Home' },

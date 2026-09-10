@@ -107,3 +107,31 @@ def test_create_and_update_blockage_with_auth():
         updated = update_res.json()
         assert updated["status"] == "cleared"
         assert updated["passable"] is True
+
+
+def test_post_safe_route_endpoint():
+    with TestClient(app) as client:
+        res = client.post(
+            "/api/routes/safe",
+            json={
+                "origin_lat": 25.5788,
+                "origin_lng": 91.8933,
+                "dest_lat": 25.5850,
+                "dest_lng": 91.9050,
+                "zone_id": "A17",
+            },
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert "id" in data
+        assert "name" in data
+        assert "distance" in data
+        assert "safetyScore" in data
+        assert "path" in data
+        assert len(data["path"]) >= 3
+        # First point should be origin
+        assert round(data["path"][0][0], 4) == round(25.5788, 4)
+        assert round(data["path"][0][1], 4) == round(91.8933, 4)
+        # Last point should be destination
+        assert round(data["path"][-1][0], 4) == round(25.5850, 4)
+        assert round(data["path"][-1][1], 4) == round(91.9050, 4)

@@ -1,32 +1,50 @@
-# React + TypeScript + Vite
+# ResQNet Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Modern, responsive, offline-first Web Application for the **ResQNet** Landslide Early Warning & Disaster Response Network (SIH Problem Statement).
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Portals & Roles
 
-## React Compiler
+1. **Citizen PWA** (`/citizen`):
+   - Rendered inside an interactive smartphone chassis with iOS-inspired Dynamic Island.
+   - Real-time landslide hazard level, rainfall rate, and soil saturation telemetry.
+   - 1-tap Emergency SOS with automatic IndexedDB offline queuing and reconnection sync.
+   - Offline Life-Safety Hub with direct phone dialers for emergency hotlines (NDRF: 1078, SDMA: 1070, 112).
+   - Dynamic OpenStreetMap Leaflet hazard map with route planning to nearest shelters.
+2. **Authority Command Center** (`/authority`):
+   - Real-time GIS situational overview monitoring 320 North Eastern Region (NER) grid zones.
+   - Tree SHAP AI diagnostics with interactive diverging waterfall chart.
+   - "What-If" parameter perturbation simulator.
+   - Alert broadcaster, incoming SOS triage queue, responder assignments, and shelter tracking.
+3. **NGO Relief Portal** (`/ngo`):
+   - Supply stockpile tracking (food, clean water, medical kits, tents).
+   - Citizen aid requests and delivery status timeline.
+4. **Field Responder / Volunteer** (`/volunteer`):
+   - Dispatched mission queue, GPS navigation, and task completion updates.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the Oxlint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+- **Framework**: React 18 + Vite
+- **Styling**: Tailwind CSS + Lucide React Icons
+- **Motion & Charts**: Framer Motion + Recharts
+- **GIS Mapping**: Leaflet + OpenStreetMap
+- **Real-Time Engine**: Full-duplex WebSockets (`/ws/*`)
+- **Offline Storage**: Native IndexedDB (`ResQNetOfflineDB`) + Service Worker PWA (`sw.js`)
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+---
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Start Vite dev server with backend proxy on port 5173
+npm run dev
+
+# Build production bundle
+npm run build
 ```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.

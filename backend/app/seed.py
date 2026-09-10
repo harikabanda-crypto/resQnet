@@ -59,14 +59,20 @@ def get_ner_region_name(lat: float, lon: float) -> str:
 def seed_database(db: Session) -> None:
     """Seed users, zones, shelters, responders, resources, and live records."""
     # 1. Users
-    if not db.scalar(select(User).limit(1)):
-        db.add_all([
-            User(name="Demo Citizen", email="citizen@resqnet.demo", password_hash=hash_password("demo123"), role="citizen"),
-            User(name="Demo Authority", email="authority@resqnet.demo", password_hash=hash_password("demo123"), role="authority"),
-            User(name="Demo NGO", email="ngo@resqnet.demo", password_hash=hash_password("demo123"), role="ngo"),
-            User(name="Demo Volunteer", email="volunteer@resqnet.demo", password_hash=hash_password("demo123"), role="volunteer"),
-        ])
-        db.commit()
+    default_users = [
+        ("Demo Citizen", "citizen@resqnet.demo", "citizen"),
+        ("Demo Authority", "authority@resqnet.demo", "authority"),
+        ("Demo NGO", "ngo@resqnet.demo", "ngo"),
+        ("Demo Volunteer", "volunteer@resqnet.demo", "volunteer"),
+        ("Aiban Langstieh", "aiban.lang@resqnet.ner", "citizen"),
+        ("Shillong NER HQ", "shillong.hq@resqnet.ner", "authority"),
+        ("Assam Relief Aid", "assam.aid@resqnet.ner", "ngo"),
+        ("NDRF Unit Bravo-1", "ndrf.bravo1@resqnet.ner", "volunteer"),
+    ]
+    for name, email, role in default_users:
+        if not db.scalar(select(User).where(User.email == email.lower())):
+            db.add(User(name=name, email=email.lower(), password_hash=hash_password("demo123"), role=role))
+    db.commit()
 
     # 2. Demo Prototype Zones (A17–F01)
     demo_zones = [

@@ -250,3 +250,26 @@ class RouteOut(BaseModel):
     reason: str
     destination_shelter: str | None = None
     shelter_id: str | None = None
+
+
+class SafeRouteRequest(BaseModel):
+    origin_lat: float
+    origin_lng: float
+    dest_lat: float
+    dest_lng: float
+    zone_id: str | None = None
+    shelter_id: str | None = None
+
+
+class SafeRouteResponse(BaseModel):
+    id: str
+    name: str
+    distance: str
+    time: str
+    risk: str
+    safety_score: int
+    safetyScore: int
+    recommended: bool
+    reason: str
+    destination_shelter: str | None = None
+    path: list[list[float]] = []

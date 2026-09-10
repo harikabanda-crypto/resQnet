@@ -1,12 +1,21 @@
 import React from 'react'
 import { DEMO_RESOURCES } from '../../data/mockData.js'
+import { useApp } from '../../contexts/AppContext.jsx'
 
 export default function AuthorityResources() {
+  const { resources = DEMO_RESOURCES } = useApp()
+  const displayResources = resources.length > 0 ? resources : DEMO_RESOURCES
+
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-black text-slate-800">Resources</h1>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-black text-slate-800">Resources</h1>
+          <p className="text-slate-500 text-xs mt-0.5">Disaster relief inventory, demand, and stockpile tracking ({displayResources.length} tracked)</p>
+        </div>
+      </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {DEMO_RESOURCES.map(r => {
+        {displayResources.map(r => {
           const pct = Math.round((r.available / r.demand) * 100)
           const shortage = r.demand - r.available
           return (
