@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ORMModel(BaseModel):
@@ -45,9 +45,28 @@ class ZoneOut(ORMModel):
 
 class PredictionInput(BaseModel):
     zone_id: str
-    rainfall_mm_hr: float = Field(ge=0)
-    soil_moisture: float = Field(ge=0, le=100)
-    water_level: float = Field(ge=0)
+    rainfall_mm_hr: float | None = Field(default=None, ge=0)
+    soil_moisture: float | None = Field(default=None, ge=0, le=100)
+    water_level: float | None = Field(default=None, ge=0)
+    # Direct feature overrides (optional)
+    elevation: float | None = None
+    slope: float | None = None
+    aspect: float | None = None
+    curvature: float | None = None
+    land_cover_code: float | None = None
+    historical_landslide_density: float | None = None
+    rainfall_1h: float | None = None
+    rainfall_3h: float | None = None
+    rainfall_6h: float | None = None
+    rainfall_12h: float | None = None
+    rainfall_24h: float | None = None
+    rainfall_3day: float | None = None
+    rainfall_7day: float | None = None
+    soil_moisture_0_7cm: float | None = None
+    soil_moisture_7_28cm: float | None = None
+    earthquake_count_7d: float | None = None
+    nearest_eq_distance_km: float | None = None
+    max_eq_magnitude: float | None = None
 
 
 class PredictionOut(ORMModel):
@@ -57,7 +76,23 @@ class PredictionOut(ORMModel):
     score: float
     confidence: float
     factors: list[str]
+    ml_probability: float | None = None
+    shap_factors: dict[str, float] | None = None
     created_at: datetime
+
+    @field_validator("factors", mode="before")
+    @classmethod
+    def parse_factors(cls, v):
+        import json
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+                return [str(parsed)]
+            except Exception:
+                return [v] if v else []
+        return v
 
 
 class AlertCreate(BaseModel):
@@ -168,3 +203,50 @@ class AssignmentOut(ORMModel):
     responder_id: str
     status: str
     created_at: datetime
+
+
+class RoadBlockageCreate(BaseModel):
+    road_name: str
+    location: str
+    zone_id: str | None = None
+    blockage_type: str = "landslide_debris"
+    severity: str = "moderate"
+    passable: bool = False
+    lat: float
+    lng: float
+
+
+class RoadBlockageUpdate(BaseModel):
+    status: str | None = None
+    passable: bool | None = None
+    severity: str | None = None
+
+
+class RoadBlockageOut(ORMModel):
+    id: str
+    road_name: str
+    location: str
+    zone_id: str | None
+    blockage_type: str
+    severity: str
+    passable: bool
+    status: str
+    lat: float
+    lng: float
+    created_at: datetime
+
+
+class RouteOut(BaseModel):
+    id: str
+    name: str
+    distance: str
+    distance_km: float
+    time: str
+    time_min: int
+    risk: str
+    safety_score: int
+    safetyScore: int
+    recommended: bool
+    reason: str
+    destination_shelter: str | None = None
+    shelter_id: str | None = None

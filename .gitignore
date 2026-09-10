@@ -8,6 +8,7 @@ __pycache__/
 .env
 .venv/
 venv/
+*.db
 
 # Large raw files — keep out of git
 datasets/raw/

@@ -142,3 +142,18 @@ class Assignment(Base):
     responder_id: Mapped[str] = mapped_column(String(30), index=True)
     status: Mapped[str] = mapped_column(String(30), default="assigned")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class RoadBlockage(Base):
+    __tablename__ = "road_blockages"
+    id: Mapped[str] = mapped_column(String(30), primary_key=True)
+    road_name: Mapped[str] = mapped_column(String(120))
+    location: Mapped[str] = mapped_column(String(160))
+    zone_id: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
+    blockage_type: Mapped[str] = mapped_column(String(50))
+    severity: Mapped[str] = mapped_column(String(20), default="moderate")
+    passable: Mapped[bool] = mapped_column(Boolean, default=False)
+    status: Mapped[str] = mapped_column(String(30), default="active", index=True)
+    lat: Mapped[float] = mapped_column(Float)
+    lng: Mapped[float] = mapped_column(Float)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

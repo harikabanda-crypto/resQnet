@@ -7,19 +7,29 @@ from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Alert, Assignment, CommunityReport, Prediction, Resource, Responder, RiskHistory, SOSRequest, Shelter, User, Zone
+from ..ml_engine import get_ml_engine
+from ..models import Alert, Assignment, CommunityReport, Prediction, Resource, Responder, RiskHistory, RoadBlockage, SOSRequest, Shelter, User, Zone
+from ..routing_engine import calculate_safe_routes
 from ..schemas import (AlertCreate, AlertOut, AlertUpdate, AssignmentCreate, AssignmentOut, PredictionInput, PredictionOut,
-                       ReportCreate, ReportOut, ResourceOut, ResponderOut, SOSCreate, SOSOut, SOSUpdate, ShelterOut, ZoneOut)
+                       ReportCreate, ReportOut, ResourceOut, ResponderOut, RoadBlockageCreate, RoadBlockageOut, RoadBlockageUpdate,
+                       RouteOut, SOSCreate, SOSOut, SOSUpdate, ShelterOut, ZoneOut)
 from ..security import get_current_user, require_roles
 
 router = APIRouter(prefix="/api", tags=["resqnet"])
 
 
 @router.get("/risk/zones", response_model=list[ZoneOut])
-def list_zones(risk: str | None = None, db: Session = Depends(get_db)):
+def list_zones(
+    risk: str | None = None,
+    limit: int | None = Query(None, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
     query = select(Zone).order_by(Zone.id)
     if risk:
         query = query.where(Zone.risk == risk)
+    if limit is not None:
+        query = query.offset(offset).limit(limit)
     return db.scalars(query).all()
 
 
@@ -39,42 +49,102 @@ def risk_trend(zone_id: str, limit: int = Query(24, ge=1, le=200), db: Session =
     return [{"time": row.recorded_at, "risk": row.risk, "score": row.score} for row in reversed(rows)]
 
 
-def score_risk(data: PredictionInput) -> tuple[str, float, float, list[str]]:
-    score = min(100.0, data.rainfall_mm_hr * 0.55 + data.soil_moisture * 0.25 + data.water_level * 0.20)
-    risk = "critical" if score >= 80 else "high" if score >= 60 else "moderate" if score >= 35 else "safe"
-    factors = []
-    if data.rainfall_mm_hr >= 50:
-        factors.append("Heavy rainfall")
-    if data.soil_moisture >= 70:
-        factors.append("High soil moisture")
-    if data.water_level >= 60:
-        factors.append("Rising water level")
-    return risk, round(score, 2), round(min(99.0, 70 + score * 0.25), 2), factors or ["No elevated factor detected"]
+@router.get("/risk/zones/{zone_id}/inspection")
+def zone_ml_inspection(zone_id: str, db: Session = Depends(get_db)):
+    if not db.get(Zone, zone_id):
+        raise HTTPException(404, "Zone not found")
+    engine = get_ml_engine()
+    res = engine.predict(zone_id)
+    return {
+        "zone_id": zone_id,
+        "risk": res.risk,
+        "score": res.score,
+        "confidence": res.confidence,
+        "ml_probability": res.ml_probability,
+        "factors": res.factors,
+        "shap_factors": res.shap_factors,
+        "features": res.feature_values,
+    }
+
+
+@router.get("/risk/summary")
+def get_ner_risk_summary(db: Session = Depends(get_db)):
+    """Summary of regional risk counts and top critical zones across the NER."""
+    total = db.scalar(select(func.count(Zone.id))) or 0
+    counts = {
+        "critical": db.scalar(select(func.count(Zone.id)).where(Zone.risk == "critical")) or 0,
+        "high": db.scalar(select(func.count(Zone.id)).where(Zone.risk == "high")) or 0,
+        "moderate": db.scalar(select(func.count(Zone.id)).where(Zone.risk == "moderate")) or 0,
+        "safe": db.scalar(select(func.count(Zone.id)).where(Zone.risk == "safe")) or 0,
+    }
+    top_zones = db.scalars(
+        select(Zone).order_by(desc(Zone.risk_score)).limit(10)
+    ).all()
+    return {
+        "total_zones": total,
+        "risk_counts": counts,
+        "top_risk_zones": [
+            {
+                "id": z.id,
+                "name": z.name,
+                "risk": z.risk,
+                "risk_score": z.risk_score,
+                "rainfall": z.rainfall,
+                "water_level": z.water_level,
+                "lat": z.lat,
+                "lng": z.lng,
+            }
+            for z in top_zones
+        ],
+    }
+
+
+@router.post("/risk/sync-live-weather")
+def sync_weather(db: Session = Depends(get_db), _: User = Depends(require_roles("authority"))):
+    """Synchronize near-real-time weather observations and recalculate zone risks."""
+    from ..weather_sync import sync_live_weather_data
+    return sync_live_weather_data(db)
 
 
 @router.post("/predict", response_model=PredictionOut)
 def predict(payload: PredictionInput, db: Session = Depends(get_db), _: User = Depends(require_roles("authority"))):
     if not db.get(Zone, payload.zone_id):
         raise HTTPException(404, "Zone not found")
-    risk, score, confidence, factors = score_risk(payload)
-    prediction = Prediction(zone_id=payload.zone_id, risk=risk, score=score, confidence=confidence, factors=json.dumps(factors))
+
+    overrides = payload.model_dump(exclude={"zone_id"}, exclude_none=True)
+    engine = get_ml_engine()
+    res = engine.predict(payload.zone_id, overrides=overrides)
+
+    prediction = Prediction(
+        zone_id=payload.zone_id,
+        risk=res.risk,
+        score=res.score,
+        confidence=res.confidence,
+        factors=json.dumps(res.factors),
+    )
     db.add(prediction)
-    db.add(RiskHistory(zone_id=payload.zone_id, risk=risk, score=score))
+    db.add(RiskHistory(zone_id=payload.zone_id, risk=res.risk, score=res.score))
+
     zone = db.get(Zone, payload.zone_id)
-    zone.risk, zone.risk_score = risk, score
-    zone.rainfall, zone.water_level = f"{payload.rainfall_mm_hr:g} mm/hr", f"{payload.water_level:g}"
+    zone.risk, zone.risk_score = res.risk, res.score
+    if payload.rainfall_mm_hr is not None:
+        zone.rainfall = f"{payload.rainfall_mm_hr:g} mm/hr"
+    if payload.water_level is not None:
+        zone.water_level = f"{payload.water_level:g}"
     db.commit()
     db.refresh(prediction)
-    result = PredictionOut(
+
+    return PredictionOut(
         id=prediction.id,
         zone_id=prediction.zone_id,
         risk=prediction.risk,
         score=prediction.score,
         confidence=prediction.confidence,
-        factors=factors,
+        factors=res.factors,
+        ml_probability=res.ml_probability,
+        shap_factors=res.shap_factors,
         created_at=prediction.created_at,
     )
-    return result
 
 
 @router.get("/alerts", response_model=list[AlertOut])
@@ -196,15 +266,64 @@ def assign_request(request_id: int, payload: AssignmentCreate, db: Session = Dep
     return assignment
 
 
-@router.get("/routes")
-def list_routes(zone_id: str | None = None, db: Session = Depends(get_db)):
+@router.get("/routes", response_model=list[RouteOut])
+def list_routes(
+    zone_id: str | None = None,
+    shelter_id: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """Calculate dynamic evacuation routes, penalizing hazardous zones and active road blockages."""
     if zone_id and not db.get(Zone, zone_id):
         raise HTTPException(404, "Zone not found")
-    return [
-        {"id": "route_a", "name": "NH65 Direct", "distance_km": 2.1, "time_min": 6, "risk": "high", "safety_score": 32, "recommended": False},
-        {"id": "route_b", "name": "Ring Road", "distance_km": 2.8, "time_min": 9, "risk": "low", "safety_score": 94, "recommended": True},
-        {"id": "route_c", "name": "Inner Roads", "distance_km": 3.4, "time_min": 12, "risk": "low", "safety_score": 88, "recommended": False},
-    ]
+    return calculate_safe_routes(db, zone_id=zone_id, shelter_id=shelter_id)
+
+
+@router.get("/blockages", response_model=list[RoadBlockageOut])
+def list_blockages(
+    status_filter: str | None = Query(None, alias="status"),
+    passable: bool | None = None,
+    db: Session = Depends(get_db),
+):
+    """List active road blockages affecting disaster transit routes."""
+    query = select(RoadBlockage).order_by(desc(RoadBlockage.created_at))
+    if status_filter:
+        query = query.where(RoadBlockage.status == status_filter)
+    if passable is not None:
+        query = query.where(RoadBlockage.passable == passable)
+    return db.scalars(query).all()
+
+
+@router.post("/blockages", response_model=RoadBlockageOut, status_code=201)
+def create_blockage(
+    payload: RoadBlockageCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles("authority", "volunteer", "ngo")),
+):
+    """Report a new road hazard or blockage."""
+    blockage_id = f"RB{uuid4().hex[:6].upper()}"
+    blockage = RoadBlockage(id=blockage_id, **payload.model_dump())
+    db.add(blockage)
+    db.commit()
+    db.refresh(blockage)
+    return blockage
+
+
+@router.put("/blockages/{blockage_id}", response_model=RoadBlockageOut)
+def update_blockage(
+    blockage_id: str,
+    payload: RoadBlockageUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles("authority", "volunteer", "ngo")),
+):
+    """Update clearance status or passability of an active road blockage."""
+    blockage = db.get(RoadBlockage, blockage_id)
+    if not blockage:
+        raise HTTPException(404, "Road blockage not found")
+    for key, value in payload.model_dump(exclude_none=True).items():
+        setattr(blockage, key, value)
+    db.commit()
+    db.refresh(blockage)
+    return blockage
 
 
 @router.get("/dashboard/summary")
