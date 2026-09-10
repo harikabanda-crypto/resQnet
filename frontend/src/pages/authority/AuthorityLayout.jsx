@@ -20,7 +20,7 @@ const NAV = [
 
 export default function AuthorityLayout() {
   const navigate = useNavigate()
-  const { setCurrentRole, alerts } = useApp()
+  const { setCurrentRole, alerts, backendConnected, wsConnected, refreshData } = useApp()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
@@ -67,10 +67,21 @@ export default function AuthorityLayout() {
             </button>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"/>
-              <span className="text-sm text-red-500 font-semibold">ACTIVE INCIDENT – FLOOD</span>
+              <span className="text-xs sm:text-sm text-red-500 font-semibold">NER DISASTER NETWORK</span>
+            </div>
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-xs text-slate-600 font-medium">
+              <span className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-green-500 animate-pulse' : backendConnected ? 'bg-blue-500' : 'bg-amber-400'}`} />
+              <span>{wsConnected ? 'Live WebSockets' : backendConnected ? 'FastAPI Connected' : 'Demo Fallback'}</span>
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => refreshData()}
+              title="Refresh live data"
+              className="text-xs text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg border border-slate-200 hover:bg-slate-50"
+            >
+              Sync
+            </button>
             <div className="relative">
               <Bell size={18} className="text-slate-400 cursor-pointer hover:text-slate-700"/>
               <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full text-[8px] text-white flex items-center justify-center font-bold">
