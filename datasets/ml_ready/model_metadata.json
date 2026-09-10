@@ -1,0 +1,58 @@
+{
+  "model_type": "XGBoostClassifier",
+  "trained_at": "2026-09-10T06:06:17Z",
+  "n_estimators": 300,
+  "features": [
+    "elevation",
+    "slope",
+    "aspect",
+    "curvature",
+    "land_cover_code",
+    "historical_landslide_density",
+    "rainfall_1h",
+    "rainfall_3h",
+    "rainfall_6h",
+    "rainfall_12h",
+    "rainfall_24h",
+    "rainfall_3day",
+    "rainfall_7day",
+    "soil_moisture_0_7cm",
+    "soil_moisture_7_28cm",
+    "earthquake_count_7d",
+    "nearest_eq_distance_km",
+    "max_eq_magnitude"
+  ],
+  "n_features": 18,
+  "training_rows": 1593,
+  "test_rows": 399,
+  "metrics": {
+    "auc_roc": 1.0,
+    "auc_pr": 1.0,
+    "cv_auc_roc": 1.0
+  },
+  "risk_thresholds": {
+    "LOW": [
+      0.0,
+      0.25
+    ],
+    "MODERATE": [
+      0.25,
+      0.5
+    ],
+    "HIGH": [
+      0.5,
+      0.75
+    ],
+    "CRITICAL": [
+      0.75,
+      1.0
+    ]
+  },
+  "shap_top5": [
+    "elevation",
+    "aspect",
+    "slope",
+    "max_eq_magnitude",
+    "earthquake_count_7d"
+  ]
+}

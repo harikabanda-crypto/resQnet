@@ -1,0 +1,18 @@
+# Temp scaffolding
+tmp-vite/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+.venv/
+venv/
+
+# Large raw files — keep out of git
+datasets/raw/
+
+# Node
+node_modules/
+dist/
+.cache/

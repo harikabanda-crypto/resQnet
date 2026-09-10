@@ -1,0 +1,83 @@
+{
+  "predicted_at": "2026-09-10T06:10:35Z",
+  "total_zones": 320,
+  "risk_counts": {
+    "CRITICAL": 4,
+    "HIGH": 223,
+    "MODERATE": 85,
+    "LOW": 8
+  },
+  "top_risk_zones": [
+    {
+      "zone_id": "Z_27.0_88.0",
+      "latitude": 27.0,
+      "longitude": 88.0,
+      "risk_pct": 92.0,
+      "risk_level": "CRITICAL"
+    },
+    {
+      "zone_id": "Z_27.5_88.5",
+      "latitude": 27.5,
+      "longitude": 88.5,
+      "risk_pct": 87.4,
+      "risk_level": "CRITICAL"
+    },
+    {
+      "zone_id": "Z_27.0_89.0",
+      "latitude": 27.0,
+      "longitude": 89.0,
+      "risk_pct": 81.1,
+      "risk_level": "CRITICAL"
+    },
+    {
+      "zone_id": "Z_26.0_91.5",
+      "latitude": 26.0,
+      "longitude": 91.5,
+      "risk_pct": 75.6,
+      "risk_level": "CRITICAL"
+    },
+    {
+      "zone_id": "Z_25.0_92.0",
+      "latitude": 25.0,
+      "longitude": 92.0,
+      "risk_pct": 72.7,
+      "risk_level": "HIGH"
+    },
+    {
+      "zone_id": "Z_27.5_95.0",
+      "latitude": 27.5,
+      "longitude": 95.0,
+      "risk_pct": 72.6,
+      "risk_level": "HIGH"
+    },
+    {
+      "zone_id": "Z_28.5_94.5",
+      "latitude": 28.5,
+      "longitude": 94.5,
+      "risk_pct": 71.4,
+      "risk_level": "HIGH"
+    },
+    {
+      "zone_id": "Z_26.5_88.0",
+      "latitude": 26.5,
+      "longitude": 88.0,
+      "risk_pct": 69.3,
+      "risk_level": "HIGH"
+    },
+    {
+      "zone_id": "Z_25.0_94.0",
+      "latitude": 25.0,
+      "longitude": 94.0,
+      "risk_pct": 69.2,
+      "risk_level": "HIGH"
+    },
+    {
+      "zone_id": "Z_27.0_89.5",
+      "latitude": 27.0,
+      "longitude": 89.5,
+      "risk_pct": 69.0,
+      "risk_level": "HIGH"
+    }
+  ],
+  "model_auc_roc": 1.0
+}
