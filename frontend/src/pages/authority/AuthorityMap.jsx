@@ -1,127 +1,220 @@
 import React, { useState } from 'react'
-import { DEMO_ZONES, DEMO_SHELTERS } from '../../data/mockData.js'
+import { useApp } from '../../contexts/AppContext.jsx'
 import RiskBadge from '../../components/RiskBadge.jsx'
 import SafeRouteCard from '../../components/SafeRouteCard.jsx'
+import InteractiveMap from '../../components/InteractiveMap.jsx'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Filter, Navigation } from 'lucide-react'
+import { Navigation, AlertTriangle, ShieldCheck, MapPin, Layers } from 'lucide-react'
+import api from '../../services/api.js'
 
-const RISK_COLORS = {
-  critical: 'bg-red-500',
-  high: 'bg-orange-500',
-  moderate: 'bg-yellow-500',
-  safe: 'bg-green-500',
-}
-
-const FILTERS = ['All', 'Risk', 'SOS', 'Shelters', 'Resources', 'Volunteers', 'Deliveries']
+const FILTERS = ['All', 'Risk', 'Shelters', 'Blockages', 'Volunteers']
 
 export default function AuthorityMap() {
+  const { zones, shelters, blockages, teams, backendConnected } = useApp()
   const [selected, setSelected] = useState(null)
+  const [selectedType, setSelectedType] = useState('zone')
   const [filter, setFilter] = useState('All')
   const [showRoute, setShowRoute] = useState(false)
+  const [activeRoute, setActiveRoute] = useState(null)
+  const [loadingRoute, setLoadingRoute] = useState(false)
+
+  // Handle entity selection from map
+  function handleSelect(item, type) {
+    setSelected(item)
+    setSelectedType(type)
+  }
+
+  // Calculate live safe route to nearest shelter
+  async function handleCalculateRoute() {
+    if (!selected) return
+    setLoadingRoute(true)
+    setShowRoute(true)
+
+    // Origin: selected zone or entity
+    const originLat = selected.lat || 25.5788
+    const originLng = selected.lng || 91.8933
+
+    // Destination: nearest shelter or first available shelter
+    const dest = shelters[0] || { lat: 25.5850, lng: 91.9050, name: 'Safe Shelter' }
+
+    if (backendConnected) {
+      try {
+        const routeData = await api.getSafeRoute(originLat, originLng, dest.lat, dest.lng)
+        setActiveRoute(routeData)
+      } catch (err) {
+        console.warn('Backend routing failed, using fallback:', err)
+        setActiveRoute(null)
+      } finally {
+        setLoadingRoute(false)
+      }
+    } else {
+      setLoadingRoute(false)
+    }
+  }
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-black text-slate-800">Live Disaster Map</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-black text-slate-800">Live Geospatial Disaster Map</h1>
+          <p className="text-slate-500 text-xs mt-0.5">
+            Real-time GIS monitoring {zones.length} NER grid zones, shelters, and road blockages
+          </p>
+        </div>
+
+        {/* Legend pills */}
+        <div className="flex items-center gap-2 text-xs flex-wrap">
+          <span className="flex items-center gap-1 bg-red-50 text-red-700 px-2 py-1 rounded-lg border border-red-200 font-semibold">
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"/> Critical Risk
+          </span>
+          <span className="flex items-center gap-1 bg-orange-50 text-orange-700 px-2 py-1 rounded-lg border border-orange-200 font-semibold">
+            <span className="w-2 h-2 rounded-full bg-orange-500"/> High Risk
+          </span>
+          <span className="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded-lg border border-blue-200 font-semibold">
+            🏠 Shelters ({shelters.length})
+          </span>
+          <span className="flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-1 rounded-lg border border-amber-200 font-semibold">
+            ⛔ Road Hazards ({blockages.length})
+          </span>
+        </div>
+      </div>
 
       {/* Filter bar */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-wrap items-center">
+        <span className="text-xs text-slate-400 font-medium flex items-center gap-1">
+          <Layers size={13} /> Filter Layers:
+        </span>
         {FILTERS.map(f => (
-          <button key={f} onClick={() => setFilter(f)}
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-              filter === f ? 'bg-orange-500 text-white' : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-400 shadow-sm'
+              filter === f
+                ? 'bg-orange-500 text-white shadow-sm'
+                : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300 shadow-sm'
             }`}
-          >{f}</button>
+          >
+            {f}
+          </button>
         ))}
       </div>
 
       <div className="grid lg:grid-cols-3 gap-4">
-        {/* Map */}
-        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-          <div className="relative h-[500px] bg-gradient-to-br from-slate-50 to-blue-50">
-            <div className="absolute inset-0 opacity-30">
-              {[...Array(10)].map((_, i) => <div key={i} className="absolute border-slate-300 border-b w-full" style={{ top: `${i * 11}%` }}/>)}
-              {[...Array(10)].map((_, i) => <div key={i} className="absolute border-slate-300 border-r h-full" style={{ left: `${i * 11}%` }}/>)}
-            </div>
-            {DEMO_ZONES.map((z, i) => {
-              const positions = [
-                { top: '35%', left: '48%' }, { top: '22%', left: '32%' }, { top: '18%', left: '58%' },
-                { top: '58%', left: '37%' }, { top: '68%', left: '57%' }, { top: '62%', left: '68%' },
-              ]
-              const p = positions[i] || { top: '50%', left: '50%' }
-              return (
-                <motion.div key={z.id} whileHover={{ scale: 1.2 }} onClick={() => setSelected(z)} className="absolute cursor-pointer" style={p}>
-                  <div className={`w-8 h-8 rounded-full ${RISK_COLORS[z.risk]} border-2 border-white flex items-center justify-center text-[10px] text-white font-bold shadow-xl ${z.risk === 'critical' ? 'animate-pulse' : ''}`}>{z.id}</div>
-                </motion.div>
-              )
-            })}
-            {DEMO_SHELTERS.map((s, i) => {
-              const positions = [{ top: '42%', left: '62%' }, { top: '37%', left: '44%' }, { top: '26%', left: '34%' }, { top: '60%', left: '40%' }]
-              const p = positions[i] || { top: '50%', left: '50%' }
-              return (
-                <div key={s.id} className="absolute" style={p}>
-                  <div className="w-6 h-6 rounded bg-blue-500 border border-white flex items-center justify-center text-xs shadow-lg cursor-pointer">🏠</div>
-                </div>
-              )
-            })}
-            {/* Legend */}
-            <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur border border-slate-200 rounded-xl p-2 flex flex-col gap-1.5 shadow-sm">
-              {[['bg-red-500','Critical'],['bg-orange-500','High Risk'],['bg-yellow-500','Moderate'],['bg-green-500','Safe'],['bg-blue-500','Shelter']].map(([c,l]) => (
-                <div key={l} className="flex items-center gap-1.5 text-[10px] text-slate-600">
-                  <div className={`w-3 h-3 rounded-full ${c}`}/>{l}
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* Leaflet Map Component */}
+        <div className="lg:col-span-2">
+          <InteractiveMap
+            zones={zones}
+            shelters={shelters}
+            blockages={blockages}
+            responders={teams}
+            activeRoute={activeRoute}
+            filter={filter}
+            selectedEntity={selected}
+            onSelect={handleSelect}
+            height="560px"
+          />
         </div>
 
-        {/* Zone detail panel */}
+        {/* Details & Routing Panel */}
         <div className="space-y-3">
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             {selected ? (
-              <motion.div key="zone" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
-                className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+              <motion.div
+                key={selected.id || 'entity'}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm"
+              >
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <div className="text-slate-800 font-bold">{selected.name}</div>
-                    <div className="text-slate-400 text-xs">Zone {selected.id}</div>
-                  </div>
-                  <RiskBadge level={selected.risk} size="lg"/>
-                </div>
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  {[
-                    ['Population', selected.population.toLocaleString()],
-                    ['Active SOS', selected.sos],
-                    ['Water Level', selected.waterLevel],
-                    ['Rainfall', selected.rainfall],
-                  ].map(([k, v]) => (
-                    <div key={k} className="bg-slate-50 border border-slate-100 rounded-xl p-2.5">
-                      <div className="text-xs text-slate-400">{k}</div>
-                      <div className="text-slate-800 font-semibold text-sm">{v}</div>
+                    <div className="text-slate-800 font-bold text-base">{selected.name || `Hazard: ${selected.blockage_type}`}</div>
+                    <div className="text-slate-400 text-xs capitalize">
+                      {selectedType}: {selected.id} {selected.location ? `• ${selected.location}` : ''}
                     </div>
-                  ))}
+                  </div>
+                  {selected.risk && <RiskBadge level={selected.risk} size="lg"/>}
                 </div>
-                <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 mb-3">
-                  <div className="text-xs text-purple-700 font-semibold mb-1">🤖 AI Recommendation</div>
-                  <div className="text-xs text-slate-600">{selected.recommendation}</div>
-                </div>
+
+                {/* Zone Telemetry Metrics */}
+                {selectedType === 'zone' && (
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    {[
+                      ['Population', (selected.population || 0).toLocaleString()],
+                      ['Active SOS', selected.sos || 0],
+                      ['Water Level', selected.waterLevel || 'Normal'],
+                      ['24h Rain', selected.rainfall || '0 mm/hr'],
+                    ].map(([k, v]) => (
+                      <div key={k} className="bg-slate-50 border border-slate-100 rounded-xl p-2.5">
+                        <div className="text-[11px] text-slate-400 font-medium">{k}</div>
+                        <div className="text-slate-800 font-bold text-sm">{v}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Shelter Capacity Metrics */}
+                {selectedType === 'shelter' && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-3 text-xs">
+                    <div className="text-blue-700 font-bold mb-1">Evacuation Shelter Capacity</div>
+                    <div className="text-slate-700">Occupied: {selected.occupied || 0} / {selected.capacity || 500}</div>
+                  </div>
+                )}
+
+                {/* Blockage Metrics */}
+                {selectedType === 'blockage' && (
+                  <div className="bg-red-50 border border-red-100 rounded-xl p-3 mb-3 text-xs">
+                    <div className="text-red-700 font-bold mb-1">Road Closure Details</div>
+                    <div className="text-slate-700">{selected.road_name} — {selected.passable ? 'Caution Passable' : 'Completely Blocked'}</div>
+                  </div>
+                )}
+
+                {/* AI Recommendation */}
+                {selected.recommendation && (
+                  <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 mb-3">
+                    <div className="text-xs text-purple-700 font-semibold mb-1">🤖 AI Action Advisory</div>
+                    <div className="text-xs text-slate-600 leading-relaxed">{selected.recommendation}</div>
+                  </div>
+                )}
+
                 <div className="space-y-2">
-                  <button onClick={() => setShowRoute(!showRoute)} className="w-full bg-green-500 hover:bg-green-600 text-white text-sm font-semibold py-2 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm">
-                    <Navigation size={14}/> Safe Route
+                  <button
+                    onClick={handleCalculateRoute}
+                    disabled={loadingRoute}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"
+                  >
+                    <Navigation size={15}/> {loadingRoute ? 'Computing Safe Corridors…' : 'Generate Safe Route'}
                   </button>
-                  <button onClick={() => setSelected(null)} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-500 text-sm py-2 rounded-xl transition-colors">✕ Close</button>
+                  <button
+                    onClick={() => { setSelected(null); setActiveRoute(null); setShowRoute(false) }}
+                    className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs py-2 rounded-xl transition-colors font-medium"
+                  >
+                    Clear Selection
+                  </button>
                 </div>
               </motion.div>
             ) : (
-              <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center text-slate-400 text-sm shadow-sm">
-                Click a zone on the map to view details
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center text-slate-400 text-xs shadow-sm">
+                <MapPin size={24} className="mx-auto mb-2 text-slate-300" />
+                Select any zone, shelter, or blockage on the map to inspect telemetry and compute hazard-free routes.
               </div>
             )}
           </AnimatePresence>
 
           {showRoute && (
             <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-              <div className="font-semibold text-slate-800 text-sm mb-3">Safe Routes</div>
-              <SafeRouteCard/>
+              <div className="flex items-center justify-between mb-3">
+                <div className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+                  <ShieldCheck size={16} className="text-emerald-600" />
+                  Hazard-Aware Routing Engine
+                </div>
+                {activeRoute && (
+                  <span className="text-[11px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">
+                    Safe Route Plotted
+                  </span>
+                )}
+              </div>
+              <SafeRouteCard />
             </div>
           )}
         </div>

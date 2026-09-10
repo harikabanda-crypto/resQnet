@@ -2,10 +2,11 @@ import React from 'react'
 import { DEMO_ROUTES } from '../data/mockData.js'
 import { Shield } from 'lucide-react'
 
-export default function SafeRouteCard({ onSelect }) {
+export default function SafeRouteCard({ routes = DEMO_ROUTES, onSelect }) {
+  const displayRoutes = routes?.length ? routes : DEMO_ROUTES
   return (
     <div className="space-y-3">
-      {DEMO_ROUTES.map(route => (
+      {displayRoutes.map(route => (
         <div
           key={route.id}
           onClick={() => onSelect && onSelect(route)}
