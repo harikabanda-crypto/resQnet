@@ -1,0 +1,2 @@
+time,latitude,longitude,depth,mag,magType,nst,gap,dmin,rms,net,id,updated,place,type,horizontalError,depthError,magError,magNst,status,locationSource,magSource
+2026-08-10T11:18:09.092Z,27.0255,96.8868,10,4.2,mb,37,147,8.39,1.03,us,us6000tkni,2026-09-01T12:57:25.040Z,"91 km N of Sarupathar, India",earthquake,14.45,1.92,0.088,36,reviewed,us,us
