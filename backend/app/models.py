@@ -1,9 +1,14 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .database import Base
+
+
+def utc_now() -> datetime:
+    """Return timezone-aware current UTC time."""
+    return datetime.now(timezone.utc)
 
 
 class User(Base):
@@ -15,7 +20,7 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(30), default="citizen", index=True)
     phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
 
 
 class Zone(Base):
@@ -40,7 +45,7 @@ class EnvironmentalData(Base):
     rainfall_mm_hr: Mapped[float] = mapped_column(Float, default=0)
     soil_moisture: Mapped[float] = mapped_column(Float, default=0)
     water_level: Mapped[float] = mapped_column(Float, default=0)
-    recorded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, index=True)
 
 
 class Prediction(Base):
@@ -51,7 +56,7 @@ class Prediction(Base):
     score: Mapped[float] = mapped_column(Float)
     confidence: Mapped[float] = mapped_column(Float)
     factors: Mapped[str] = mapped_column(Text, default="")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, index=True)
 
 
 class RiskHistory(Base):
@@ -60,7 +65,7 @@ class RiskHistory(Base):
     zone_id: Mapped[str] = mapped_column(String(20), index=True)
     risk: Mapped[str] = mapped_column(String(20))
     score: Mapped[float] = mapped_column(Float)
-    recorded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, index=True)
 
 
 class Alert(Base):
@@ -71,7 +76,7 @@ class Alert(Base):
     zone_id: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
     status: Mapped[str] = mapped_column(String(20), default="active")
     created_by: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, index=True)
 
 
 class SOSRequest(Base):
@@ -88,7 +93,7 @@ class SOSRequest(Base):
     citizen_name: Mapped[str] = mapped_column(String(120), default="Citizen")
     assigned_team: Mapped[str | None] = mapped_column(String(120), nullable=True)
     created_by: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, index=True)
 
 
 class CommunityReport(Base):
@@ -99,7 +104,7 @@ class CommunityReport(Base):
     description: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(20), default="received")
     created_by: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
 
 
 class Shelter(Base):
@@ -141,7 +146,7 @@ class Assignment(Base):
     request_id: Mapped[int] = mapped_column(Integer, index=True)
     responder_id: Mapped[str] = mapped_column(String(30), index=True)
     status: Mapped[str] = mapped_column(String(30), default="assigned")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
 
 
 class RoadBlockage(Base):
@@ -156,4 +161,4 @@ class RoadBlockage(Base):
     status: Mapped[str] = mapped_column(String(30), default="active", index=True)
     lat: Mapped[float] = mapped_column(Float)
     lng: Mapped[float] = mapped_column(Float)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)

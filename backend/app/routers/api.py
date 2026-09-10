@@ -14,6 +14,7 @@ from ..schemas import (AlertCreate, AlertOut, AlertUpdate, AssignmentCreate, Ass
                        ReportCreate, ReportOut, ResourceOut, ResponderOut, RoadBlockageCreate, RoadBlockageOut, RoadBlockageUpdate,
                        RouteOut, SOSCreate, SOSOut, SOSUpdate, ShelterOut, ZoneOut)
 from ..security import get_current_user, require_roles
+from ..websockets import manager
 
 router = APIRouter(prefix="/api", tags=["resqnet"])
 
@@ -161,6 +162,17 @@ def create_alert(payload: AlertCreate, db: Session = Depends(get_db), user: User
     db.add(alert)
     db.commit()
     db.refresh(alert)
+    manager.broadcast_sync("alerts", {
+        "event": "alert_created",
+        "data": {
+            "id": alert.id,
+            "message": alert.message,
+            "severity": alert.severity,
+            "zone_id": alert.zone_id,
+            "status": alert.status,
+            "created_at": alert.created_at.isoformat(),
+        },
+    })
     return alert
 
 
@@ -172,6 +184,15 @@ def update_alert(alert_id: int, payload: AlertUpdate, db: Session = Depends(get_
     alert.status = payload.status
     db.commit()
     db.refresh(alert)
+    manager.broadcast_sync("alerts", {
+        "event": "alert_updated",
+        "data": {
+            "id": alert.id,
+            "status": alert.status,
+            "severity": alert.severity,
+            "zone_id": alert.zone_id,
+        },
+    })
     return alert
 
 
@@ -195,6 +216,21 @@ def create_sos(payload: SOSCreate, db: Session = Depends(get_db), user: User = D
     zone.sos += 1
     db.commit()
     db.refresh(request)
+    manager.broadcast_sync("sos", {
+        "event": "sos_created",
+        "data": {
+            "id": request.id,
+            "request_code": request.request_code,
+            "type": request.type,
+            "zone_id": request.zone_id,
+            "location": request.location,
+            "people": request.people,
+            "priority": request.priority,
+            "status": request.status,
+            "citizen_name": request.citizen_name,
+            "created_at": request.created_at.isoformat(),
+        },
+    })
     return request
 
 
@@ -215,6 +251,16 @@ def update_sos(request_id: int, payload: SOSUpdate, db: Session = Depends(get_db
         setattr(request, key, value)
     db.commit()
     db.refresh(request)
+    manager.broadcast_sync("sos", {
+        "event": "sos_updated",
+        "data": {
+            "id": request.id,
+            "request_code": request.request_code,
+            "status": request.status,
+            "priority": request.priority,
+            "assigned_team": request.assigned_team,
+        },
+    })
     return request
 
 
@@ -263,6 +309,17 @@ def assign_request(request_id: int, payload: AssignmentCreate, db: Session = Dep
     db.add(assignment)
     db.commit()
     db.refresh(assignment)
+    manager.broadcast_sync("sos", {
+        "event": "sos_assigned",
+        "data": {
+            "request_id": request.id,
+            "request_code": request.request_code,
+            "status": request.status,
+            "assigned_team": request.assigned_team,
+            "responder_id": responder.id,
+            "responder_name": responder.name,
+        },
+    })
     return assignment
 
 
@@ -305,6 +362,20 @@ def create_blockage(
     db.add(blockage)
     db.commit()
     db.refresh(blockage)
+    manager.broadcast_sync("routes", {
+        "event": "blockage_reported",
+        "data": {
+            "id": blockage.id,
+            "road_name": blockage.road_name,
+            "location": blockage.location,
+            "blockage_type": blockage.blockage_type,
+            "severity": blockage.severity,
+            "passable": blockage.passable,
+            "status": blockage.status,
+            "lat": blockage.lat,
+            "lng": blockage.lng,
+        },
+    })
     return blockage
 
 
@@ -323,6 +394,15 @@ def update_blockage(
         setattr(blockage, key, value)
     db.commit()
     db.refresh(blockage)
+    manager.broadcast_sync("routes", {
+        "event": "blockage_updated",
+        "data": {
+            "id": blockage.id,
+            "road_name": blockage.road_name,
+            "status": blockage.status,
+            "passable": blockage.passable,
+        },
+    })
     return blockage
 
 

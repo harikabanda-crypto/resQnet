@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -8,10 +9,12 @@ from .config import get_settings
 from .database import Base, SessionLocal, engine
 from .routers import api, auth
 from .seed import seed_database
+from .websockets import manager, ws_router
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    manager.set_loop(asyncio.get_running_loop())
     Base.metadata.create_all(bind=engine)
     with SessionLocal() as db:
         seed_database(db)
@@ -35,6 +38,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(api.router)
+app.include_router(ws_router)
 
 
 @app.get("/health", tags=["system"])
