@@ -17,3 +17,6 @@ datasets/raw/
 node_modules/
 dist/
 .cache/
+
+# Logs
+*.log
