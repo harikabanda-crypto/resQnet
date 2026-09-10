@@ -27,10 +27,27 @@ function CitizenNav() {
 }
 
 export default function CitizenLayout() {
+  const { isOnline, outboxCount } = useApp()
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center">
       <MobilePhone showApp={true}>
         <div className="h-full flex flex-col bg-slate-50 overflow-hidden relative">
+          {/* Top Offline Network Indicator */}
+          {!isOnline && (
+            <div className="bg-amber-600 text-white text-[10px] px-3 py-1 flex items-center justify-between font-semibold shrink-0">
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                Offline Life-Safety Mode
+              </span>
+              {outboxCount > 0 && (
+                <span className="bg-amber-800 px-1.5 py-0.5 rounded text-[9px]">
+                  {outboxCount} queued
+                </span>
+              )}
+            </div>
+          )}
+
           <div className="flex-1 overflow-y-auto scrollbar-hide pb-16">
             <Outlet />
           </div>

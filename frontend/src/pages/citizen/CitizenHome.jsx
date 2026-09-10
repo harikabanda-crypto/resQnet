@@ -1,22 +1,40 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MapPin, AlertTriangle, Droplets, CloudRain, Home, ChevronRight, Shield } from 'lucide-react'
+import { MapPin, AlertTriangle, Droplets, CloudRain, Home, ChevronRight, Shield, CheckCircle } from 'lucide-react'
 import { useApp } from '../../contexts/AppContext.jsx'
 import RiskBadge from '../../components/RiskBadge.jsx'
+import OfflineEmergencyHub from '../../components/OfflineEmergencyHub.jsx'
 
 export default function CitizenHome() {
-  const { alerts } = useApp()
+  const { alerts, addRequest, isOnline, outboxCount } = useApp()
   const navigate = useNavigate()
   const [sosModal, setSosModal] = useState(false)
   const [sosSent, setSosSent] = useState(false)
+  const [generatedSosId, setGeneratedSosId] = useState(null)
 
   function handleSOS() {
     setSosModal(true)
   }
-  function confirmSOS() {
+
+  async function confirmSOS() {
+    const id = 'SOS' + Math.floor(10000 + Math.random() * 90000)
+    setGeneratedSosId(id)
+    await addRequest({
+      id,
+      type: 'Rescue',
+      priority: 'critical',
+      location: 'Current GPS Location (NER Hill Zone)',
+      zone: 'A17',
+      people: 1,
+      description: 'IMMEDIATE 1-TAP EMERGENCY DISTRESS DISPATCH',
+      citizenName: 'Emergency Citizen',
+    })
     setSosSent(true)
-    setTimeout(() => { setSosModal(false); setSosSent(false) }, 3000)
+    setTimeout(() => {
+      setSosModal(false)
+      setSosSent(false)
+    }, 3500)
   }
 
   return (
@@ -26,12 +44,12 @@ export default function CitizenHome() {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5 text-slate-600 text-xs">
             <MapPin size={12} className="text-orange-500"/>
-            <span>Kukatpally, Hyderabad</span>
+            <span>Zone A17, Meghalaya (NER)</span>
           </div>
           <RiskBadge level="high" />
         </div>
-        <div className="text-red-700 font-bold text-base mb-1">HIGH RISK ZONE</div>
-        <p className="text-slate-600 text-xs leading-relaxed">{alerts[0]?.message || 'Heavy rainfall detected. Water levels are rising in your area.'}</p>
+        <div className="text-red-700 font-bold text-base mb-1">HIGH LANDSLIDE RISK ZONE</div>
+        <p className="text-slate-600 text-xs leading-relaxed">{alerts[0]?.message || 'Heavy precipitation detected across hill slopes. Water tables rising.'}</p>
       </div>
 
       {/* Live stats */}
@@ -39,18 +57,18 @@ export default function CitizenHome() {
         <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
           <div className="flex items-center gap-1.5 mb-1">
             <CloudRain size={13} className="text-blue-500"/>
-            <span className="text-xs text-slate-500">Rainfall</span>
+            <span className="text-xs text-slate-500">24h Rainfall</span>
           </div>
           <div className="text-slate-800 font-bold text-lg">82 mm/hr</div>
-          <div className="text-xs text-orange-600">⬆ Rising</div>
+          <div className="text-xs text-orange-600">⬆ Rising Inflow</div>
         </div>
         <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
           <div className="flex items-center gap-1.5 mb-1">
             <Droplets size={13} className="text-blue-500"/>
-            <span className="text-xs text-slate-500">Water Level</span>
+            <span className="text-xs text-slate-500">Soil Saturation</span>
           </div>
-          <div className="text-slate-800 font-bold text-lg">Rising</div>
-          <div className="text-xs text-slate-400">Updated 2 min ago</div>
+          <div className="text-slate-800 font-bold text-lg">78%</div>
+          <div className="text-xs text-slate-400">Pore Pressure High</div>
         </div>
       </div>
 
@@ -72,22 +90,8 @@ export default function CitizenHome() {
         </motion.button>
       </div>
 
-      {/* Nearest shelter */}
-      <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
-        <div className="flex items-center gap-2 mb-2">
-          <Home size={14} className="text-green-500"/>
-          <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">Nearest Shelter</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-slate-800 font-semibold text-sm">Kondapur Sports Complex</div>
-            <div className="text-xs text-slate-500">1.8 km • ~12 min • 580 spots available</div>
-          </div>
-          <button onClick={() => navigate('/citizen/map')} className="text-orange-500 hover:text-orange-600">
-            <ChevronRight size={18}/>
-          </button>
-        </div>
-      </div>
+      {/* Offline Emergency Hub (Hotlines, Outbox, and Landslide Protocols) */}
+      <OfflineEmergencyHub />
 
       {/* Latest alert */}
       <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm space-y-2">
@@ -132,19 +136,30 @@ export default function CitizenHome() {
               {sosSent ? (
                 <>
                   <div className="text-5xl mb-3">✅</div>
-                  <div className="text-green-600 font-bold text-lg mb-2">SOS SENT</div>
-                  <div className="text-slate-500 text-sm">Request ID: <span className="text-slate-800 font-mono">SOS-{Date.now().toString().slice(-5)}</span></div>
-                  <div className="text-slate-500 text-xs mt-2">Location: Kukatpally</div>
+                  <div className="text-green-600 font-bold text-lg mb-2">
+                    {isOnline ? 'DISTRESS BROADCASTED' : 'SAVED IN OFFLINE OUTBOX'}
+                  </div>
+                  <div className="text-slate-500 text-sm">
+                    Request ID: <span className="text-slate-800 font-mono">#{generatedSosId}</span>
+                  </div>
+                  <div className="text-slate-500 text-xs mt-2">Location: Zone A17 (Hill GPS)</div>
                   <div className="mt-3 text-xs text-orange-600 font-semibold">Priority: CRITICAL</div>
-                  <div className="text-xs text-slate-500">Estimated response: 8-12 min</div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    {isOnline ? 'Estimated NDRF dispatch: 6–10 min' : 'Will transmit automatically when signal reconnects'}
+                  </div>
                 </>
               ) : (
                 <>
                   <div className="text-4xl mb-3">🆘</div>
                   <div className="text-red-600 font-bold text-lg mb-2">EMERGENCY SOS</div>
-                  <p className="text-slate-500 text-xs mb-5">Your current location will be shared with authorities and nearby responders.</p>
-                  <button onClick={confirmSOS} className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl transition-colors animate-pulse">
-                    HOLD TO SEND
+                  <p className="text-slate-500 text-xs mb-5">
+                    Your GPS coordinates will be instantly dispatched to the NDRF Command and nearby emergency teams.
+                  </p>
+                  <button
+                    onClick={confirmSOS}
+                    className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3.5 rounded-xl transition-colors shadow-md animate-pulse"
+                  >
+                    TAP TO BROADCAST SOS
                   </button>
                   <button onClick={() => setSosModal(false)} className="mt-3 text-slate-400 text-xs hover:text-slate-600 transition-colors">Cancel</button>
                 </>

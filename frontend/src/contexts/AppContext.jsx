@@ -9,6 +9,7 @@ import {
 } from '../data/mockData.js'
 import api from '../services/api.js'
 import wsService from '../services/websocket.js'
+import offlineStorage from '../services/offlineStorage.js'
 
 const AppContext = createContext(null)
 
@@ -55,6 +56,8 @@ export function AppProvider({ children }) {
   const [isLiveMode, setIsLiveMode] = useState(true)
   const [backendConnected, setBackendConnected] = useState(false)
   const [wsConnected, setWsConnected] = useState(false)
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true)
+  const [outboxCount, setOutboxCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
 
   // Auth state
@@ -112,6 +115,11 @@ export function AppProvider({ children }) {
       }
       if (sheltersRes.status === 'fulfilled' && sheltersRes.value?.length) {
         setShelters(sheltersRes.value)
+        offlineStorage.cacheShelters(sheltersRes.value)
+      } else {
+        offlineStorage.getCachedShelters().then(cached => {
+          if (cached?.length) setShelters(cached)
+        })
       }
       if (resourcesRes.status === 'fulfilled' && resourcesRes.value?.length) {
         setResources(resourcesRes.value)
@@ -125,6 +133,9 @@ export function AppProvider({ children }) {
     } catch (err) {
       console.warn('[AppContext] Backend unreachable, using demo fallback:', err.message)
       setBackendConnected(false)
+      offlineStorage.getCachedShelters().then(cached => {
+        if (cached?.length) setShelters(cached)
+      })
     } finally {
       setIsLoading(false)
     }
@@ -216,18 +227,51 @@ export function AppProvider({ children }) {
     }
   }, [refreshData, isLiveMode])
 
+  // Offline outbox queue & network monitor effect
+  useEffect(() => {
+    offlineStorage.getPendingSOS().then(pending => setOutboxCount(pending.length))
+    const unsubscribeSync = offlineStorage.onSyncEvent(() => {
+      offlineStorage.getPendingSOS().then(pending => setOutboxCount(pending.length))
+    })
+
+    const handleOnline = async () => {
+      setIsOnline(true)
+      const { syncedCount } = await offlineStorage.syncOutbox(api)
+      if (syncedCount > 0) {
+        refreshData()
+      }
+    }
+    const handleOffline = () => setIsOnline(false)
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      unsubscribeSync()
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [refreshData])
+
   // Citizen SOS submission
   async function addRequest(req) {
     const tempId = req.id || 'RQ' + Math.floor(10000 + Math.random() * 90000)
+    const isDisconnected = !isOnline || !backendConnected
     const optimisticReq = {
       ...req,
       id: tempId,
-      status: 'received',
+      status: isDisconnected ? 'offline_queued' : 'received',
       time: 'Just now',
       citizenName: req.citizenName || req.citizen_name || 'Citizen',
     }
 
     setRequests(prev => [optimisticReq, ...prev])
+
+    // If offline or backend unreachable, immediately persist in IndexedDB outbox
+    if (isDisconnected) {
+      await offlineStorage.queueSOS(optimisticReq)
+      return optimisticReq
+    }
 
     if (backendConnected && isLiveMode) {
       try {
@@ -244,7 +288,9 @@ export function AppProvider({ children }) {
         setRequests(prev => [normalized, ...prev.filter(r => r.id !== tempId && r.id !== normalized.id)])
         return normalized
       } catch (err) {
-        console.warn('[AppContext] Failed to post live SOS, keeping local draft:', err.message)
+        console.warn('[AppContext] Failed to post live SOS, queueing in IndexedDB outbox:', err.message)
+        await offlineStorage.queueSOS(optimisticReq)
+        setRequests(prev => prev.map(r => r.id === tempId ? { ...r, status: 'offline_queued' } : r))
       }
     } else {
       // Offline Demo simulation
@@ -357,6 +403,9 @@ export function AppProvider({ children }) {
         setIsLiveMode,
         backendConnected,
         wsConnected,
+        isOnline,
+        outboxCount,
+        syncOutbox: () => offlineStorage.syncOutbox(api),
         isLoading,
         refreshData,
 
